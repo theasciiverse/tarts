@@ -7,6 +7,7 @@
 //! | `blank`  | Blank screen — no-op placeholder         |
 //! | `boids`  | Boids flocking simulation                |
 //! | `buffer` | Terminal cell buffer for colored output  |
+//! | `butterfly` | Fluttering butterflies floating around |
 //! | `check`  | Terminal event checking (input, resize)  |
 //! | `common` | Shared traits and types (TerminalEffect) |
 //! | `config` | CLI configuration and argument parsing   |
@@ -26,6 +27,7 @@
 pub mod blank;
 pub mod boids;
 pub mod buffer;
+pub mod butterfly;
 pub mod check;
 pub mod common;
 pub mod config;
