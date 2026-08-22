@@ -7,7 +7,7 @@
 //! | `blank`  | Blank screen — no-op placeholder         |
 //! | `boids`  | Boids flocking simulation                |
 //! | `buffer` | Terminal cell buffer for colored output  |
-//! | `butterfly` | Fluttering butterflies floating around |
+//! | `butterfly` | Butterflies floating around           |
 //! | `check`  | Terminal event checking (input, resize)  |
 //! | `common` | Shared traits and types (TerminalEffect) |
 //! | `config` | CLI configuration and argument parsing   |
