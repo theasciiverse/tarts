@@ -9,6 +9,7 @@
 //! | `buffer` | Terminal cell buffer for colored output  |
 //! | `butterfly` | Butterflies floating around           |
 //! | `check`  | Terminal event checking (input, resize)  |
+//! | `collision` | Shared bounding-box collision detection |
 //! | `common` | Shared traits and types (TerminalEffect) |
 //! | `config` | CLI configuration and argument parsing   |
 //! | `constellation` | Drifting stars and dotted connections |
@@ -29,6 +30,7 @@ pub mod boids;
 pub mod buffer;
 pub mod butterfly;
 pub mod check;
+pub mod collision;
 pub mod common;
 pub mod config;
 pub mod constellation;

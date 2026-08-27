@@ -7,6 +7,7 @@ mod boids;
 mod buffer;
 mod butterfly;
 mod check;
+mod collision;
 mod common;
 mod config;
 mod constellation;

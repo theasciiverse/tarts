@@ -1,4 +1,5 @@
 use crate::buffer::{Buffer, Cell};
+use crate::collision::{self, BoundingBox, Collidable};
 use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
@@ -157,6 +158,17 @@ impl ButterflyEntity {
     }
 }
 
+impl Collidable for ButterflyEntity {
+    fn bounding_box(&self) -> BoundingBox {
+        BoundingBox {
+            x: self.position.0,
+            y: self.position.1,
+            width: self.frame_width as f32,
+            height: self.frame_height as f32,
+        }
+    }
+}
+
 impl TerminalEffect for Butterfly {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
         let mut curr_buffer =
@@ -206,6 +218,8 @@ impl TerminalEffect for Butterfly {
                 &mut self.rng,
             );
         }
+
+        self.check_butterfly_collisions();
     }
 
     fn update_size(&mut self, width: u16, height: u16) {
@@ -240,6 +254,33 @@ impl Butterfly {
             buffer,
             butterflies,
             rng,
+        }
+    }
+
+    fn check_butterfly_collisions(&mut self) {
+        if self.butterflies.len() < 2 {
+            return;
+        }
+
+        for (i, j) in collision::find_collisions(&self.butterflies) {
+            let dx =
+                self.butterflies[i].position.0 - self.butterflies[j].position.0;
+            let dy =
+                self.butterflies[i].position.1 - self.butterflies[j].position.1;
+
+            let (push_x, push_y) = if dx == 0.0 && dy == 0.0 {
+                let angle =
+                    self.rng.random_range(0.0..(std::f32::consts::PI * 2.0));
+                (angle.cos(), angle.sin())
+            } else {
+                let len = (dx * dx + dy * dy).sqrt();
+                (dx / len, dy / len)
+            };
+
+            self.butterflies[i].velocity.0 += push_x * 0.5;
+            self.butterflies[i].velocity.1 += push_y * 0.5;
+            self.butterflies[j].velocity.0 -= push_x * 0.5;
+            self.butterflies[j].velocity.1 -= push_y * 0.5;
         }
     }
 }
