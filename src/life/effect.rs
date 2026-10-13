@@ -155,7 +155,7 @@ impl TerminalEffect for ConwayLife {
     }
 
     fn reset(&mut self) {
-        todo!();
+        *self = Self::new(self.options.clone(), self.screen_size);
     }
 }
 
