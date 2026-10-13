@@ -1,101 +1,147 @@
-name: Release Assets
+# Builds tarts for the Asciiverse catalog: one archive per target, named
+# <id>-<target>.tar.gz (Linux, macOS) or .zip (Windows), plus a SHA256SUMS
+# file, attached to a GitHub release (hub/catalog/SCHEMA.md,
+# release.source = "github"). Upstream's own workflows (crates.io, Homebrew,
+# its releases) are removed in this fork; see PATCHES.md.
+#
+# Tags look like v0.1.0-av.1: upstream's version, then our packaging release.
+# Linux builds run in Alpine, so the binaries are static (musl). Windows
+# builds use MSVC on Windows runners. Pure Rust, no native libraries;
+# rust-toolchain.toml pins the compiler (1.89.0) everywhere.
+
+name: release
 
 on:
-  release:
-    types: [published]
   push:
-    tags:
-      - 'v*'
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Tag (e.g., v0.1.22) to attach assets to'
-        required: false
+      tag:
+        description: "existing tag to build and release"
+        required: true
+
+env:
+  ID: tarts
+  BIN: tarts
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 permissions:
   contents: write
 
 jobs:
-  build-and-upload:
-    name: Build for ${{ matrix.runner }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.runner }}
+  linux:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - runner: macos-latest
-            target: aarch64-apple-darwin
-            arch: arm64
-          - runner: macos-latest
-            target: x86_64-apple-darwin
-            arch: x86_64
-      fail-fast: false
-
+          - { target: x86_64-unknown-linux-musl, runner: ubuntu-24.04 }
+          - { target: aarch64-unknown-linux-musl, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
-    - name: Get Rust toolchain version
-      id: get_toolchain_version
-      run: echo "RUST_TOOLCHAIN=$(grep 'channel =' rust-toolchain.toml | cut -d '"' -f 2)" >> $GITHUB_ENV
+      - name: Build
+        run: |
+          docker run --rm -v "$PWD":/src -w /src rust:1-alpine sh -c '
+            apk add --no-cache musl-dev &&
+            cargo build --release --locked &&
+            strip target/release/tarts'
+          sudo chown -R "$(id -u):$(id -g)" target
+          file target/release/$BIN
 
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: ${{ env.RUST_TOOLCHAIN }}
-        targets: ${{ matrix.target }}
+      - name: Package for av
+        run: |
+          # the binary sits at the top of the archive, where av looks for it
+          mkdir -p stage dist
+          cp target/release/$BIN LICENSE README.md stage/
+          tar -czf "dist/$ID-${{ matrix.target }}.tar.gz" -C stage .
 
-    - name: Ensure target std is installed
-      shell: bash
-      run: |
-        rustup target add ${{ matrix.target }} --toolchain ${{ env.RUST_TOOLCHAIN }}
-        rustup target list --installed
 
-    - name: Show toolchain info
-      run: |
-        rustc -vV
-        cargo -vV
-        rustup show
-        rustup target list --installed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
 
-    - name: Resolve release tag
-      id: tag
-      shell: bash
-      run: |
-        # Prefer release event tag, else input, else ref name
-        TAG_NAME="${{ github.event.release.tag_name }}"
-        if [ -z "$TAG_NAME" ]; then
-          TAG_NAME="${{ github.event.inputs.tag_name }}"
-        fi
-        if [ -z "$TAG_NAME" ]; then
-          TAG_NAME="${{ github.ref_name }}"
-        fi
-        if [ -z "$TAG_NAME" ]; then
-          echo "Could not determine tag name" >&2
-          exit 1
-        fi
-        echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    runs-on: macos-14
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
-    - name: Build tarts
-      run: cargo build --release --target ${{ matrix.target }}
+      - name: Build
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --locked --target ${{ matrix.target }}
+          strip target/${{ matrix.target }}/release/$BIN
+          file target/${{ matrix.target }}/release/$BIN
 
-    - name: Create archive and checksum
-      shell: bash
-      run: |
-        # Standard naming convention for Homebrew: tarts-{version}-{target}.tar.gz
-        ASSET_NAME="tarts-${RELEASE_TAG}-${{ matrix.target }}.tar.gz"
-        mkdir -p dist
-        cp target/${{ matrix.target }}/release/tarts dist/tarts
-        tar -czvf "$ASSET_NAME" -C dist tarts
-        echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
-        # Generate sha256 checksum file alongside the archive
-        shasum -a 256 "$ASSET_NAME" | awk '{print $1}' > "$ASSET_NAME.sha256"
+      - name: Package
+        run: |
+          mkdir -p stage dist
+          cp target/${{ matrix.target }}/release/$BIN LICENSE README.md stage/
+          tar -czf "dist/$ID-${{ matrix.target }}.tar.gz" -C stage .
 
-    - name: Upload release asset
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ env.RELEASE_TAG }}
-        files: |
-          ${{ env.ASSET_NAME }}
-          ${{ env.ASSET_NAME }}.sha256
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
+
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-pc-windows-msvc, aarch64-pc-windows-msvc]
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Build
+        shell: bash
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p stage dist
+          cp target/${{ matrix.target }}/release/$BIN.exe LICENSE README.md stage/
+          (cd stage && 7z a -tzip "../dist/$ID-${{ matrix.target }}.zip" .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
+
+  release:
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" -R "$GITHUB_REPOSITORY" --title "tarts $TAG" \
+                 --notes "tarts ${TAG%%-av.*} from github.com/oiwn/tarts, built for the Asciiverse catalog. Changes from upstream: see PATCHES.md."
+          gh release upload "$TAG" dist/* -R "$GITHUB_REPOSITORY" --clobber
