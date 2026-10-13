@@ -7,7 +7,7 @@ upstream. Upstream's own notes for agents are in AGENTS.md.
 
 - Remotes: `upstream` is github.com/oiwn/tarts, `origin` is
   github.com/theasciiverse/tarts.
-- Branch `asciiverse` = upstream master plus our commits.
+- Branch `asciiverse` = upstream main plus our commits.
 - Release: tag `v<version>-av.<n>` and push only that tag (upstream's own
   `v*` tags would start the release workflow too).
 - av starts it as `tarts tour`.
