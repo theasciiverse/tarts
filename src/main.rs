@@ -39,7 +39,25 @@ const VALID_SAVERS: &[&str] = &[
     "fire",
     "constellation",
     "butterfly",
+    "tour",
 ];
+
+/// The effects `tarts tour` shows in turn, and how long each one runs
+const TOUR: &[&str] = &[
+    "matrix",
+    "donut",
+    "boids",
+    "plasma",
+    "fire",
+    "pipes",
+    "life",
+    "cube",
+    "constellation",
+    "crab",
+    "butterfly",
+    "maze",
+];
+const TOUR_SECONDS: u64 = 20;
 
 #[derive(Debug)]
 struct AppArgs {
@@ -117,93 +135,124 @@ fn main() -> Result<(), error::TartsError> {
         let mut guard = TerminalGuard::new()?;
         let (width, height) = terminal::size()?;
 
-        match args.screen_saver.as_str() {
-            "matrix" => {
-                let options = config.get_matrix_options((width, height));
-                let mut digital_rain =
-                    rain::digital_rain::DigitalRain::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut digital_rain, None)?
-            }
-            "life" => {
-                let options = config.get_life_options((width, height));
-                let mut conway_life =
-                    life::ConwayLife::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut conway_life, None)?
-            }
-            "maze" => {
-                let options = config.get_maze_options((width, height));
-                let mut maze = maze::Maze::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut maze, None)?
-            }
-            "boids" => {
-                let options = config.get_boids_options((width, height));
-                let mut boids = boids::Boids::new(options);
-                common::run_loop(guard.get_stdout(), &mut boids, None)?
-            }
-            "blank" => {
-                let options = config.get_blank_options();
-                let mut blank = blank::Blank::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut blank, None)?
-            }
-            "cube" => {
-                let options = config.get_cube_options();
-                let mut cube = cube::Cube::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut cube, None)?
-            }
-            "crab" => {
-                let options = config.get_crab_options((width, height));
-                let mut crab = crab::Crab::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut crab, None)?
-            }
-            "donut" => {
-                let options = config.get_donut_options((width, height));
-                let mut donut = donut::Donut::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut donut, None)?
-            }
-            "pipes" => {
-                let options = config.get_pipes_options();
-                let mut pipes = pipes::Pipes::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut pipes, None)?
-            }
-            "plasma" => {
-                let options = config.get_plasma_options();
-                let mut plasma = plasma::Plasma::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut plasma, None)?
-            }
-            "fire" => {
-                let options = config.get_fire_options();
-                let mut fire = fire::Fire::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut fire, None)?
-            }
-            "constellation" => {
-                let options = config.get_constellation_options();
-                let mut constellation =
-                    constellation::Constellation::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut constellation, None)?
-            }
-            "butterfly" => {
-                let options = config.get_butterfly_options((width, height));
-                let mut butterfly =
-                    butterfly::Butterfly::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut butterfly, None)?
-            }
-            "terrain" => {
-                let options = config.get_terrain_options();
-                let mut terrain = terrain::Terrain::new(options, (width, height));
-                common::run_loop(guard.get_stdout(), &mut terrain, None)?
-            }
-            _ => {
-                println!(
-                    "Pick screensaver: [matrix, life, maze, boids, cube, crab, donut]"
-                );
-                0.0
-            }
+        if args.screen_saver == "tour" {
+            tour(guard.get_stdout(), &config)?;
+            None
+        } else {
+            let mut effect =
+                make_effect(&args.screen_saver, &config, (width, height))
+                    .expect("checked against VALID_SAVERS");
+            Some(common::run_loop(guard.get_stdout(), effect.as_mut(), None)?)
         }
     };
 
     println!("{}", config_status);
-    println!("Frames per second: {:.1}", fps);
+    if let Some(fps) = fps {
+        println!("Frames per second: {:.1}", fps);
+    }
     Ok(())
+}
+
+/// The effect called `name`, sized to the terminal
+fn make_effect(
+    name: &str,
+    config: &Config,
+    (width, height): (u16, u16),
+) -> Option<Box<dyn common::TerminalEffect>> {
+    let effect: Box<dyn common::TerminalEffect> = match name {
+        "matrix" => {
+            let options = config.get_matrix_options((width, height));
+            let digital_rain =
+                rain::digital_rain::DigitalRain::new(options, (width, height));
+            Box::new(digital_rain)
+        }
+        "life" => {
+            let options = config.get_life_options((width, height));
+            let conway_life = life::ConwayLife::new(options, (width, height));
+            Box::new(conway_life)
+        }
+        "maze" => {
+            let options = config.get_maze_options((width, height));
+            let maze = maze::Maze::new(options, (width, height));
+            Box::new(maze)
+        }
+        "boids" => {
+            let options = config.get_boids_options((width, height));
+            let boids = boids::Boids::new(options);
+            Box::new(boids)
+        }
+        "blank" => {
+            let options = config.get_blank_options();
+            let blank = blank::Blank::new(options, (width, height));
+            Box::new(blank)
+        }
+        "cube" => {
+            let options = config.get_cube_options();
+            let cube = cube::Cube::new(options, (width, height));
+            Box::new(cube)
+        }
+        "crab" => {
+            let options = config.get_crab_options((width, height));
+            let crab = crab::Crab::new(options, (width, height));
+            Box::new(crab)
+        }
+        "donut" => {
+            let options = config.get_donut_options((width, height));
+            let donut = donut::Donut::new(options, (width, height));
+            Box::new(donut)
+        }
+        "pipes" => {
+            let options = config.get_pipes_options();
+            let pipes = pipes::Pipes::new(options, (width, height));
+            Box::new(pipes)
+        }
+        "plasma" => {
+            let options = config.get_plasma_options();
+            let plasma = plasma::Plasma::new(options, (width, height));
+            Box::new(plasma)
+        }
+        "fire" => {
+            let options = config.get_fire_options();
+            let fire = fire::Fire::new(options, (width, height));
+            Box::new(fire)
+        }
+        "constellation" => {
+            let options = config.get_constellation_options();
+            let constellation =
+                constellation::Constellation::new(options, (width, height));
+            Box::new(constellation)
+        }
+        "butterfly" => {
+            let options = config.get_butterfly_options((width, height));
+            let butterfly = butterfly::Butterfly::new(options, (width, height));
+            Box::new(butterfly)
+        }
+        "terrain" => {
+            let options = config.get_terrain_options();
+            let terrain = terrain::Terrain::new(options, (width, height));
+            Box::new(terrain)
+        }
+        _ => return None,
+    };
+    Some(effect)
+}
+
+/// Every effect in turn, TOUR_SECONDS each, round and round until quit;
+/// n, Space or Right skip ahead, p or Left go back
+fn tour(stdout: &mut io::Stdout, config: &Config) -> Result<(), error::TartsError> {
+    let mut at = 0;
+    loop {
+        let size = terminal::size()?;
+        execute!(stdout, terminal::Clear(terminal::ClearType::All))?;
+        let mut effect =
+            make_effect(TOUR[at], config, size).expect("TOUR holds known effects");
+        let length = std::time::Duration::from_secs(TOUR_SECONDS);
+        match common::run_timed(stdout, effect.as_mut(), length)? {
+            common::TourStep::Quit => return Ok(()),
+            common::TourStep::Next => at = (at + 1) % TOUR.len(),
+            common::TourStep::Previous => at = (at + TOUR.len() - 1) % TOUR.len(),
+        }
+    }
 }
 
 fn parse_args() -> Result<AppArgs, String> {
@@ -283,6 +332,7 @@ fn print_help() {
     println!("    constellation  Drifting stars and dotted connections");
     println!("    butterfly   Butterflies floating around");
     println!("    blank       Blank screen");
+    println!("    tour        Every effect in turn (n next, p previous)");
     println!();
     println!("OPTIONS:");
     println!("    -h, --help              Show help");
