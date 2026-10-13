@@ -1,7 +1,7 @@
 # Changes from upstream
 
 This is the Asciiverse packaging of [tarts](https://github.com/oiwn/tarts)
-by oiwn and contributors (MIT), built from upstream's v0.1.26 (master on
+by oiwn and contributors (MIT), built from upstream's v0.1.26 (main on
 2026-10-13). Upstream is the `upstream` remote; the `asciiverse` branch
 carries the changes below. Both code changes are worth offering upstream.
 
