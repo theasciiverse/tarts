@@ -8,8 +8,11 @@ upstream. Upstream's own notes for agents are in AGENTS.md.
 - Remotes: `upstream` is github.com/oiwn/tarts, `origin` is
   github.com/theasciiverse/tarts.
 - Branch `asciiverse` = upstream main plus our commits.
-- Release: tag `v<version>-av.<n>` and push only that tag (upstream's own
-  `v*` tags would start the release workflow too).
+- Release: tag `v<version>-av.<n>`; the workflow runs on `v*-av.*` tags
+  only, but push only our tag anyway.
+- Upstream rewrote its history before v0.1.27; our branch was rebased onto
+  v0.1.27 (2026-10-18). Move to a new upstream release by rebasing onto
+  its tag.
 - av starts it as `tarts tour`.
 - Local static build: `docker run --rm -v "$PWD":/src -w /src
   rust:1-alpine sh -c 'apk add musl-dev && cargo build --release'`.
