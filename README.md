@@ -1,3 +1,16 @@
+> **Play it with Asciiverse.** With [av](https://asciiverse.sh), the Asciiverse
+> client:
+>
+> ```
+> av install tarts
+> av play tarts
+> ```
+>
+> Or download the archive for your system from this repository's Releases,
+> unpack it and run `./tarts` (`tarts.exe` on Windows).
+>
+> The original README follows.
+
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/tarts)
 ![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/tarts)
 ![GitHub License](https://img.shields.io/github/license/oiwn/tarts)

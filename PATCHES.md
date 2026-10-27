@@ -46,3 +46,9 @@ by oiwn and contributors (MIT), built from upstream's v0.1.27
   of ten effects through the tour), and `asciiverse/cast-cap-fps.py`
   re-encodes it at 25 frames a second (tarts draws at 60; the raw
   recording is 58 MB, the preview 15 MB).
+
+## Ours
+
+- **How to play it, at the top of README.md.** A short note on installing and
+  starting it with av, or from a release archive; the original text follows
+  unchanged.
