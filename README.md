@@ -6,9 +6,6 @@
 > av play tarts
 > ```
 >
-> Or download the archive for your system from this repository's Releases,
-> unpack it and run `./tarts` (`tarts.exe` on Windows).
->
 > The original README follows.
 
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/tarts)
